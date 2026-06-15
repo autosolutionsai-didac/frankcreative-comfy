@@ -374,7 +374,7 @@ export default function App() {
         await fetchHealth();
         const freshConfig = mergeConfig(await fetchConfig());
         const sessionResult = await listSessions();
-        let nextSession = sessionResult.sessions[0];
+        let nextSession = chooseLaunchSession(sessionResult.sessions);
         let nextSessions = sessionResult.sessions;
 
         if (!nextSession) {
@@ -588,6 +588,8 @@ export default function App() {
     () => buildLaunchReadinessItems(config, providerSetupState.waitingModels.length, demoDoctor, activationChecklist, readinessPackSha),
     [activationChecklist, config, demoDoctor, providerSetupState.waitingModels.length, readinessPackSha]
   );
+  const mainDemoSession = useMemo(() => sessions.find(isMainDemoSession) ?? null, [sessions]);
+  const showMainDemoAction = Boolean(mainDemoSession && activeSession?.id !== mainDemoSession.id);
 
   function showImageStudio() {
     setStudioMode("image-studio");
@@ -691,6 +693,18 @@ export default function App() {
         ? `Local preview in ${sessionSubjectLabel}. Job jacket carried over.`
         : "Local preview session ready."
     );
+  }
+
+  async function returnToMainDemo() {
+    if (!mainDemoSession) {
+      setStatusText("Main demo session is not loaded yet.");
+      return;
+    }
+
+    setAdvancedOpen(false);
+    setSettingsOpen(false);
+    await selectSession(mainDemoSession);
+    setStatusText("Back to the Frank Body demo.");
   }
 
   async function selectSession(session: StudioSession) {
@@ -1378,7 +1392,7 @@ export default function App() {
     }
 
     setSelectedAsset(asset);
-    setLightboxAsset(asset);
+    setLightboxAsset(null);
   }
 
   function startCompare(asset: Asset) {
@@ -2272,6 +2286,12 @@ export default function App() {
               ))}
             </select>
           </label>
+          {showMainDemoAction ? (
+            <button className="secondary-button compact-action" type="button" onClick={returnToMainDemo}>
+              <ArrowLeft size={16} />
+              Main demo
+            </button>
+          ) : null}
           <button className="secondary-button compact-action" type="button" onClick={handleNewSession}>
             <Plus size={16} />
             New session
@@ -4005,6 +4025,17 @@ function CompareDialog({
   onApprove: (asset: Asset) => void;
   onEdit: (asset: Asset) => void;
 }) {
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   return (
     <div className="compare-modal" role="dialog" aria-modal="true" aria-label="Compare picks">
       <div className="compare-modal-inner">
@@ -4744,6 +4775,14 @@ function mergeConfig(config: FrankConfig): FrankConfig {
     localEngine: { ...fallbackConfig.localEngine, ...config.localEngine },
     voice: { ...fallbackConfig.voice, ...config.voice }
   };
+}
+
+function isMainDemoSession(session: StudioSession) {
+  return session.name.trim().toLowerCase() === "frank body demo studio";
+}
+
+function chooseLaunchSession(sessions: StudioSession[]) {
+  return sessions.find(isMainDemoSession) ?? sessions[0];
 }
 
 function makeBriefDraft(overrides: Partial<BriefFormState> = {}): BriefFormState {

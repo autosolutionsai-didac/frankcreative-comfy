@@ -103,9 +103,18 @@ function rawProbe() {
 
 (async () => {
   const sessions = await fetchJson(`${baseUrl}/api/frank/sessions`);
-  const activeSession = (sessions.sessions || [])[0] || {};
-  const assets = activeSession.id ? await fetchJson(`${baseUrl}/api/frank/assets?session_id=${encodeURIComponent(activeSession.id)}`) : { assets: [] };
-  const approved = (assets.assets || []).find((asset) => asset.approval_status === 'approved') || (assets.assets || []).find((asset) => asset.kind === 'candidate');
+  const sessionList = sessions.sessions || [];
+  const orderedSessions = [
+    ...sessionList.filter((session) => (session.name || '').trim().toLowerCase() === 'frank body demo studio'),
+    ...sessionList.filter((session) => (session.name || '').trim().toLowerCase() !== 'frank body demo studio')
+  ];
+  let approved = null;
+  for (const session of orderedSessions) {
+    if (!session.id) continue;
+    const assets = await fetchJson(`${baseUrl}/api/frank/assets?session_id=${encodeURIComponent(session.id)}`);
+    approved = (assets.assets || []).find((asset) => asset.approval_status === 'approved') || (assets.assets || []).find((asset) => asset.kind === 'candidate');
+    if (approved) break;
+  }
   if (approved) {
     const receiptTarget = browserTargets.find((target) => target.key === 'raw_comfy_receipt');
     receiptTarget.url = `${baseUrl}/comfy/?frankAssetId=${encodeURIComponent(approved.id)}`;

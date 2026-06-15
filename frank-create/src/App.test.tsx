@@ -38,6 +38,114 @@ describe("App", () => {
     expect(await screen.findByText("Comfy offline")).toBeInTheDocument();
   });
 
+  it("opens the populated demo by default and gives blank sessions a Main demo escape hatch", async () => {
+    const blankSession = {
+      id: "session-empty",
+      name: "Original Coffee Scrub Image Studio",
+      mode: "image",
+      status: "active",
+      created_at: "2026-06-15T00:00:00Z",
+      updated_at: "2026-06-15T00:00:00Z"
+    };
+    const demoSession = {
+      id: "session-demo",
+      name: "Frank Body Demo Studio",
+      mode: "image",
+      status: "active",
+      created_at: "2026-06-14T00:00:00Z",
+      updated_at: "2026-06-14T00:00:00Z"
+    };
+    const createdSession = {
+      ...blankSession,
+      id: "session-created",
+      name: "New image session"
+    };
+    const demoTurn = {
+      id: "turn-demo",
+      session_id: demoSession.id,
+      kind: "generate",
+      provider: "google",
+      model: "google-nb-pro",
+      prompt: "Create a Frank Body product shot.",
+      status: "complete",
+      frank_body_mode: true,
+      settings_json: JSON.stringify({ aspect_ratio: "1:1", image_size: "1K", count: 4 }),
+      reference_asset_ids_json: JSON.stringify([]),
+      created_at: "2026-06-15T00:00:00Z",
+      updated_at: "2026-06-15T00:00:00Z"
+    };
+    const demoAsset = {
+      id: "asset-demo",
+      session_id: demoSession.id,
+      turn_id: demoTurn.id,
+      kind: "candidate",
+      title: "Frank demo product shot",
+      media_type: "image",
+      provider: "google",
+      model: "google-nb-pro",
+      prompt: demoTurn.prompt,
+      file_path: "input/frank_create/demo.jpg",
+      preview_url: "/api/view?filename=demo.jpg&type=input&subfolder=frank_create",
+      width: 1024,
+      height: 1024,
+      favorite: true,
+      approval_status: "approved",
+      sync_status: "local",
+      settings_json: demoTurn.settings_json,
+      reference_asset_ids_json: "[]",
+      created_at: "2026-06-15T00:00:00Z",
+      updated_at: "2026-06-15T00:00:00Z"
+    };
+
+    vi.unstubAllGlobals();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        const method = init?.method ?? "GET";
+        if (url.endsWith("/api/frank/health")) {
+          return jsonResponse({ ok: true, product: "Frank Create" });
+        }
+        if (url.endsWith("/api/frank/config")) {
+          return jsonResponse(readyModelConfig("google-nb-pro", "GOOGLE_API_KEY"));
+        }
+        if (url.endsWith("/api/frank/sessions") && method === "GET") {
+          return jsonResponse({ sessions: [blankSession, demoSession] });
+        }
+        if (url.endsWith("/api/frank/sessions") && method === "POST") {
+          return jsonResponse({ session: createdSession }, 201);
+        }
+        if (url.includes("/api/frank/turns")) {
+          return jsonResponse(url.includes(demoSession.id) ? { turns: [demoTurn] } : { turns: [] });
+        }
+        if (url.includes("/api/frank/assets")) {
+          return jsonResponse(url.includes(demoSession.id) ? { assets: [demoAsset] } : { assets: [] });
+        }
+        if (url.includes("/api/frank/exports")) {
+          return jsonResponse({ exports: [] });
+        }
+        if (url.endsWith("/api/frank/projects")) {
+          return jsonResponse({ projects: [] });
+        }
+        throw new Error(`Unhandled fetch: ${method} ${url}`);
+      })
+    );
+
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: "Frank Body Demo Studio" })).toBeInTheDocument();
+    expect(screen.getByText("Frank demo product shot")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Main demo$/i })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /^New session$/i }));
+    expect(await screen.findByRole("heading", { name: "New image session" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Main demo$/i })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /^Main demo$/i }));
+    expect(await screen.findByRole("heading", { name: "Frank Body Demo Studio" })).toBeInTheDocument();
+    expect(screen.getByText("Frank demo product shot")).toBeInTheDocument();
+  });
+
   it("opens a modal walkthrough that dims the app and points at each real workspace area", async () => {
     const { container } = render(<App />);
 
@@ -62,6 +170,112 @@ describe("App", () => {
 
     expect(screen.queryByRole("dialog", { name: /Demo Walkthrough guide/i })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Walkthrough backdrop")).not.toBeInTheDocument();
+  });
+
+  it("selects output cards without opening the lightbox and closes compare with Escape", async () => {
+    const session = {
+      id: "session-card-click",
+      name: "Frank Body Demo Studio",
+      mode: "image",
+      status: "active",
+      created_at: "2026-06-15T00:00:00Z",
+      updated_at: "2026-06-15T00:00:00Z"
+    };
+    const turn = {
+      id: "turn-card-click",
+      session_id: session.id,
+      kind: "generate",
+      provider: "google",
+      model: "google-nb-pro",
+      prompt: "Create Frank Body product shots.",
+      status: "complete",
+      frank_body_mode: true,
+      settings_json: JSON.stringify({ aspect_ratio: "1:1", image_size: "1K", count: 2 }),
+      reference_asset_ids_json: "[]",
+      created_at: "2026-06-15T00:00:00Z",
+      updated_at: "2026-06-15T00:00:00Z"
+    };
+    const firstAsset = {
+      id: "asset-card-click-1",
+      session_id: session.id,
+      turn_id: turn.id,
+      kind: "candidate",
+      title: "First product shot",
+      media_type: "image",
+      provider: "google",
+      model: "google-nb-pro",
+      prompt: turn.prompt,
+      file_path: "input/frank_create/first.jpg",
+      preview_url: "/api/view?filename=first.jpg&type=input&subfolder=frank_create",
+      width: 1024,
+      height: 1024,
+      favorite: false,
+      approval_status: "approved",
+      sync_status: "local",
+      settings_json: turn.settings_json,
+      reference_asset_ids_json: "[]",
+      created_at: "2026-06-15T00:00:00Z",
+      updated_at: "2026-06-15T00:00:00Z"
+    };
+    const secondAsset = {
+      ...firstAsset,
+      id: "asset-card-click-2",
+      title: "Second product shot",
+      approval_status: "review",
+      file_path: "input/frank_create/second.jpg",
+      preview_url: "/api/view?filename=second.jpg&type=input&subfolder=frank_create"
+    };
+
+    vi.unstubAllGlobals();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.endsWith("/api/frank/health")) {
+          return jsonResponse({ ok: true, product: "Frank Create" });
+        }
+        if (url.endsWith("/api/frank/config")) {
+          return jsonResponse(readyModelConfig("google-nb-pro", "GOOGLE_API_KEY"));
+        }
+        if (url.endsWith("/api/frank/sessions")) {
+          return jsonResponse({ sessions: [session] });
+        }
+        if (url.includes("/api/frank/turns")) {
+          return jsonResponse({ turns: [turn] });
+        }
+        if (url.includes("/api/frank/assets")) {
+          return jsonResponse({ assets: [firstAsset, secondAsset] });
+        }
+        if (url.includes("/api/frank/exports")) {
+          return jsonResponse({ exports: [] });
+        }
+        if (url.endsWith("/api/frank/projects")) {
+          return jsonResponse({ projects: [] });
+        }
+        throw new Error(`Unhandled fetch: ${url}`);
+      })
+    );
+
+    const { container } = render(<App />);
+
+    expect(await screen.findByRole("heading", { name: "First product shot" })).toBeInTheDocument();
+    const outputButtons = container.querySelectorAll<HTMLButtonElement>(".output-grid button");
+    expect(outputButtons).toHaveLength(2);
+
+    fireEvent.click(outputButtons[0]);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "First product shot" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Open selected asset/i }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Close preview/i }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Compare picks/i }));
+    fireEvent.click(outputButtons[1]);
+    expect(screen.getByRole("dialog", { name: /Compare picks/i })).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: /Compare picks/i })).not.toBeInTheDocument();
   });
 
   it("walks through every major studio and right-panel feature with targeted popups", async () => {

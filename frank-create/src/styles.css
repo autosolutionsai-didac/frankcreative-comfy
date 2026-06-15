@@ -146,7 +146,7 @@ button:disabled {
   grid-column: 1 / -1;
   position: sticky;
   top: 0;
-  z-index: 20;
+  z-index: 40;
   min-width: 0;
   background: rgba(255, 255, 255, 0.94);
   border-bottom: 1px solid var(--line);
