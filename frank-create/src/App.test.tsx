@@ -22,7 +22,7 @@ describe("App", () => {
 
     expect(await screen.findByText("Frank Create")).toBeInTheDocument();
     expect(screen.getByText(/Add references, brief the image, generate picks/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^New$/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^New session$/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Demo Walkthrough/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^Advanced$/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^Product Shot Lab$/i })).toBeInTheDocument();
@@ -488,7 +488,7 @@ describe("App", () => {
 
     expect(await screen.findByText("Comfy is in the room.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /^Video Lab$/i }));
-    fireEvent.click(screen.getByRole("button", { name: /^New$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^New session$/i }));
 
     await waitFor(() =>
       expect(sessionPosts).toEqual([
@@ -1249,7 +1249,7 @@ describe("App", () => {
 
     const promptInput = await screen.findByPlaceholderText(/Brief the image/i);
     fireEvent.change(promptInput, { target: { value: "Carryover prompt that should clear." } });
-    fireEvent.click(screen.getByRole("button", { name: /^New$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^New session$/i }));
 
     await screen.findByText("New session. Fresh canvas.");
     expect(sessionCreateCalls).toEqual([expect.objectContaining({ name: "New image session", mode: "image" })]);

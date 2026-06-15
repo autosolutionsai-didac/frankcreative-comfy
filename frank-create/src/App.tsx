@@ -159,7 +159,7 @@ const WALKTHROUGH_STEPS: WalkthroughStep[] = [
   {
     title: "Sessions and demo controls",
     detail: "This header is the control strip for the call: switch sessions, start fresh, launch this walkthrough, or open Advanced when someone technical asks.",
-    points: ["Session keeps each creative thread separate.", "New starts another brief without touching the current one.", "Advanced stays hidden during the normal creative flow."],
+    points: ["Session keeps each creative thread separate.", "New session starts another brief without touching the current one.", "Advanced stays hidden during the normal creative flow."],
     target: "app-header"
   },
   {
@@ -2274,7 +2274,7 @@ export default function App() {
           </label>
           <button className="secondary-button compact-action" type="button" onClick={handleNewSession}>
             <Plus size={16} />
-            New
+            New session
           </button>
           <button className="secondary-button compact-action" type="button" onClick={startWalkthrough}>
             <MessageSquareText size={16} />
