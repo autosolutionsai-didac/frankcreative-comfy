@@ -290,6 +290,7 @@ export default function App() {
   );
   const [advancedOpen, setAdvancedOpen] = useState(() => shouldAutoOpenProviderAudit());
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [inspectorTab, setInspectorTab] = useState<"review" | "settings" | "brand" | "export">("review");
   const [walkthroughOpen, setWalkthroughOpen] = useState(false);
   const [walkthroughStep, setWalkthroughStep] = useState(0);
   const [walkthroughAnchor, setWalkthroughAnchor] = useState<WalkthroughAnchor | null>(null);
@@ -516,12 +517,14 @@ export default function App() {
     setEditSourceAsset(asset);
     setMaskAsset(null);
     setMaskPainterAsset(null);
+    setInspectorTab("review");
   }
 
   function startMaskPainter(asset: Asset) {
     setEditSourceAsset(asset);
     setMaskAsset(null);
     setMaskPainterAsset(asset);
+    setInspectorTab("review");
   }
 
   useEffect(() => {
@@ -631,9 +634,26 @@ export default function App() {
     setStudioMode("approved-hot");
     setReviewFilter("approved");
     setSelectedAsset(firstApproved);
+    setInspectorTab("review");
     setLightboxAsset(null);
     clearCompare();
     setStatusText(firstApproved ? "Approved only. Hot." : "No approved images yet.");
+  }
+
+  function showExportsPanel() {
+    setInspectorTab("export");
+    setStatusText(showHandoffPanel ? "Export desk is open." : "Approve a pick to unlock exports.");
+  }
+
+  function showBrandPanel() {
+    setInspectorTab("brand");
+    setStatusText("Brand Kit is open.");
+  }
+
+  function showModelSettings() {
+    setInspectorTab("settings");
+    setSettingsOpen(true);
+    setStatusText("Model settings are open.");
   }
 
   async function handleNewSession() {
@@ -1397,6 +1417,7 @@ export default function App() {
         return;
       }
       setSelectedAsset(asset);
+      setInspectorTab("review");
       setCompareTargetAsset(asset);
       setLightboxAsset(null);
       setStatusText("Compare the picks side by side.");
@@ -1404,6 +1425,7 @@ export default function App() {
     }
 
     setSelectedAsset(asset);
+    setInspectorTab("review");
     setLightboxAsset(null);
   }
 
@@ -2151,18 +2173,27 @@ export default function App() {
     }
     if (activeWalkthroughStep.openSettings) {
       setSettingsOpen(true);
+      setInspectorTab("settings");
     }
     if (activeWalkthroughStep.openAdvanced) {
       setAdvancedOpen(true);
     }
     if (activeWalkthroughStep.selectOutput && !selectedAsset && firstOutputAsset) {
       setSelectedAsset(firstOutputAsset);
+      setInspectorTab("review");
       setLightboxAsset(null);
+    }
+    if (activeWalkthroughStep.target === "handoff-pack") {
+      setInspectorTab("export");
+    }
+    if (activeWalkthroughStep.target === "review-panel" || activeWalkthroughStep.target === "export-controls") {
+      setInspectorTab("review");
     }
   }, [
     activeWalkthroughStep.openAdvanced,
     activeWalkthroughStep.openSettings,
     activeWalkthroughStep.selectOutput,
+    activeWalkthroughStep.target,
     firstOutputAsset,
     selectedAsset?.id,
     walkthroughOpen
@@ -2242,6 +2273,7 @@ export default function App() {
   }, []);
 
   const statusReadyLink = parseReadyStatusLink(statusText);
+  const modelSettingsExpanded = settingsOpen || inspectorTab === "settings";
 
   if (surface === "graph") {
     return (
@@ -2266,19 +2298,113 @@ export default function App() {
       className={`studio-shell guided-studio ${providerAuditMode ? "provider-audit-mode" : ""} ${advancedOpen ? "advanced-open" : ""}`}
       data-provider-audit={providerAuditMode ? "open" : undefined}
     >
-      <header className="guided-header" data-tour-id="app-header" data-tour-active={tourActive("app-header")}>
-        <div className="guided-brand">
-          <div className="brand-mark" aria-label="Frank Body">
+      <aside className="guided-header app-sidebar" data-tour-id="app-header" data-tour-active={tourActive("app-header")}>
+        <div className="sidebar-brand-block">
+          <div className="brand-mark sidebar-brand-mark" aria-label="Frank Create">
             <span>frank</span>
-            <span>body</span>
+            <span>create</span>
           </div>
-          <div>
-            <p className="eyebrow">{config.voice.appTitle}</p>
-            <h1>Frank Create</h1>
-            <p>Add references, brief the image, generate picks, edit or approve one, export it.</p>
-          </div>
+          <h1 className="sidebar-app-title">Frank Create</h1>
+          <p className="sidebar-app-copy">Add references, brief the image, generate picks, edit or approve one, export it.</p>
+          <p className="eyebrow">{config.voice.appTitle}</p>
         </div>
-        <div className="guided-header-actions">
+
+        <nav className="sidebar-nav" aria-label="Frank Create navigation">
+          <p className="sidebar-section-label">Create</p>
+          <button
+            className={`sidebar-nav-button ${studioMode === "image-studio" && reviewFilter === "all" ? "active" : ""}`}
+            type="button"
+            aria-label="Open Image Studio"
+            onClick={showImageStudio}
+          >
+            <Wand2 size={16} />
+            Image Studio
+          </button>
+          <button
+            className={`sidebar-nav-button ${studioMode === "product-shot-lab" ? "active" : ""}`}
+            type="button"
+            aria-label="Open Product Shot Lab"
+            onClick={showProductShotLab}
+          >
+            <Layers3 size={16} />
+            Product Shot Lab
+          </button>
+          <button
+            className={`sidebar-nav-button ${studioMode === "video-lab" ? "active" : ""}`}
+            type="button"
+            aria-label="Open Video Lab"
+            onClick={showVideoLab}
+          >
+            <Film size={16} />
+            Video Lab
+          </button>
+
+          <p className="sidebar-section-label">Review</p>
+          <button
+            className={`sidebar-nav-button ${reviewFilter === "approved" ? "active" : ""}`}
+            type="button"
+            aria-label="Open approved picks"
+            onClick={showApprovedHot}
+          >
+            <CheckCircle2 size={16} />
+            Approved
+            <span className="sidebar-badge">{approvedCount}</span>
+          </button>
+          <button
+            className={`sidebar-nav-button ${inspectorTab === "export" ? "active" : ""}`}
+            type="button"
+            aria-label="Open exports"
+            onClick={showExportsPanel}
+          >
+            <Download size={16} />
+            Exports
+          </button>
+
+          <p className="sidebar-section-label">Configure</p>
+          <button
+            className={`sidebar-nav-button ${inspectorTab === "brand" ? "active" : ""}`}
+            type="button"
+            aria-label="Open Brand Kit"
+            onClick={showBrandPanel}
+          >
+            <Sparkles size={16} />
+            Brand Kit
+          </button>
+          <button
+            className={`sidebar-nav-button ${inspectorTab === "settings" ? "active" : ""}`}
+            type="button"
+            aria-label="Open Models and Keys"
+            onClick={showModelSettings}
+          >
+            <Cpu size={16} />
+            Models & Keys
+          </button>
+          <button
+            className="sidebar-nav-button"
+            type="button"
+            aria-label="Open Raw Comfy"
+            onClick={() => openStudioLink(config.advancedGraphUrl, "Raw Comfy canvas")}
+          >
+            <GitBranch size={16} />
+            Raw Comfy
+          </button>
+          <button className="sidebar-nav-button" type="button" onClick={startWalkthrough}>
+            <MessageSquareText size={16} />
+            Demo Walkthrough
+          </button>
+          <button
+            className={`sidebar-nav-button ${advancedOpen ? "active" : ""}`}
+            type="button"
+            aria-controls="advanced-tools-drawer"
+            aria-expanded={advancedOpen}
+            onClick={() => setAdvancedOpen((current) => !current)}
+          >
+            {advancedOpen ? <XCircle size={16} /> : <GitBranch size={16} />}
+            {advancedOpen ? "Close Advanced" : "Advanced"}
+          </button>
+        </nav>
+
+        <div className="sidebar-session-card">
           <label className="session-picker">
             <span>Session</span>
             <select
@@ -2298,32 +2424,21 @@ export default function App() {
               ))}
             </select>
           </label>
+          <p>
+            {turns.length} rounds / {approvedCount} approved / {favoriteCount} fave{favoriteCount === 1 ? "" : "s"}
+          </p>
           {showMainDemoAction ? (
             <button className="secondary-button compact-action" type="button" onClick={returnToMainDemo}>
               <ArrowLeft size={16} />
               Main demo
             </button>
           ) : null}
-          <button className="secondary-button compact-action" type="button" onClick={handleNewSession}>
+          <button className="secondary-button compact-action sidebar-new-session" type="button" onClick={handleNewSession}>
             <Plus size={16} />
             New session
           </button>
-          <button className="secondary-button compact-action" type="button" onClick={startWalkthrough}>
-            <MessageSquareText size={16} />
-            Demo Walkthrough
-          </button>
-          <button
-            className="secondary-button compact-action"
-            type="button"
-            aria-controls="advanced-tools-drawer"
-            aria-expanded={advancedOpen}
-            onClick={() => setAdvancedOpen((current) => !current)}
-          >
-            {advancedOpen ? <XCircle size={16} /> : <GitBranch size={16} />}
-            {advancedOpen ? "Close Advanced" : "Advanced"}
-          </button>
         </div>
-      </header>
+      </aside>
 
       <main className="conversation-column">
         <header className="studio-topbar">
@@ -2550,8 +2665,46 @@ export default function App() {
       </main>
 
       <aside className="context-panel" aria-label="Review and settings">
+        <div className="inspector-tabs" role="tablist" aria-label="Inspector sections">
+          <button
+            className={inspectorTab === "review" ? "active" : ""}
+            type="button"
+            role="tab"
+            aria-selected={inspectorTab === "review"}
+            onClick={() => setInspectorTab("review")}
+          >
+            Review
+          </button>
+          <button
+            className={inspectorTab === "settings" ? "active" : ""}
+            type="button"
+            role="tab"
+            aria-selected={inspectorTab === "settings"}
+            onClick={showModelSettings}
+          >
+            Settings
+          </button>
+          <button
+            className={inspectorTab === "brand" ? "active" : ""}
+            type="button"
+            role="tab"
+            aria-selected={inspectorTab === "brand"}
+            onClick={showBrandPanel}
+          >
+            Brand
+          </button>
+          <button
+            className={inspectorTab === "export" ? "active" : ""}
+            type="button"
+            role="tab"
+            aria-selected={inspectorTab === "export"}
+            onClick={showExportsPanel}
+          >
+            Export
+          </button>
+        </div>
         <section
-          className="context-section model-summary"
+          className="context-section model-summary inspector-model-strip"
           data-tour-id="model-settings"
           data-tour-active={tourActive("model-settings")}
         >
@@ -2572,13 +2725,16 @@ export default function App() {
             className="secondary-button handoff-button"
             type="button"
             aria-controls="model-settings-drawer"
-            aria-expanded={settingsOpen}
-            onClick={() => setSettingsOpen((current) => !current)}
+            aria-expanded={modelSettingsExpanded}
+            onClick={modelSettingsExpanded ? () => {
+              setSettingsOpen(false);
+              setInspectorTab("review");
+            } : showModelSettings}
           >
-            {settingsOpen ? <XCircle size={16} /> : <Cpu size={16} />}
-            {settingsOpen ? "Hide model settings" : "Change model"}
+            {modelSettingsExpanded ? <XCircle size={16} /> : <Cpu size={16} />}
+            {modelSettingsExpanded ? "Hide model settings" : "Change model"}
           </button>
-          {settingsOpen ? (
+          {modelSettingsExpanded ? (
             <div
               id="model-settings-drawer"
               className="settings-drawer"
@@ -2591,7 +2747,14 @@ export default function App() {
                   <strong>Model choices</strong>
                   <small>Pick provider, size, refs, and brand mode.</small>
                 </span>
-                <button className="mini-button drawer-close-button" type="button" onClick={() => setSettingsOpen(false)}>
+                <button
+                  className="mini-button drawer-close-button"
+                  type="button"
+                  onClick={() => {
+                    setSettingsOpen(false);
+                    setInspectorTab("review");
+                  }}
+                >
                   <XCircle size={14} />
                   Done
                 </button>
@@ -2670,7 +2833,7 @@ export default function App() {
         </section>
 
         <section
-          className="context-section selected-output"
+          className={`context-section selected-output inspector-panel ${inspectorTab === "review" ? "active" : ""}`}
           data-tour-id="review-panel"
           data-tour-active={tourActive("review-panel")}
         >
@@ -2864,7 +3027,11 @@ export default function App() {
         </section>
 
         {showHandoffPanel ? (
-          <section className="context-section handoff-section" data-tour-id="handoff-pack" data-tour-active={tourActive("handoff-pack")}>
+          <section
+            className={`context-section handoff-section inspector-panel ${inspectorTab === "export" ? "active" : ""}`}
+            data-tour-id="handoff-pack"
+            data-tour-active={tourActive("handoff-pack")}
+          >
             <div className="section-title">
               <p className="eyebrow">Export</p>
               <h3>Cliff Pack</h3>
@@ -2921,7 +3088,7 @@ export default function App() {
         ) : null}
 
         {recentExports.length ? (
-          <section className="context-section recent-exports-section">
+          <section className={`context-section recent-exports-section inspector-panel ${inspectorTab === "export" ? "active" : ""}`}>
             <div className="section-title">
               <p className="eyebrow">Handoff trail</p>
               <h3>Recent exports</h3>
@@ -2939,6 +3106,76 @@ export default function App() {
             </div>
           </section>
         ) : null}
+
+        <section className={`context-section brand-kit-section inspector-panel ${inspectorTab === "brand" ? "active" : ""}`}>
+          <div className="section-title">
+            <p className="eyebrow">Brand guidance</p>
+            <h3>Brand Kit</h3>
+          </div>
+          <label className="brand-kit-field">
+            <span>Style guidance</span>
+            <textarea
+              aria-label="Inspector Frank Brand Kit style guidance"
+              value={brandKitDraft.style_guidance}
+              onChange={(event) => setBrandKitDraft((current) => ({ ...current, style_guidance: event.target.value }))}
+            />
+          </label>
+          <label className="brand-kit-field">
+            <span>Negative guardrails</span>
+            <textarea
+              aria-label="Inspector Frank Brand Kit negative prompt"
+              value={brandKitDraft.negative_prompt}
+              onChange={(event) => setBrandKitDraft((current) => ({ ...current, negative_prompt: event.target.value }))}
+            />
+          </label>
+          <label className="brand-kit-field">
+            <span>Reference notes</span>
+            <textarea
+              aria-label="Inspector Frank Brand Kit reference notes"
+              value={brandKitDraft.reference_notes}
+              onChange={(event) => setBrandKitDraft((current) => ({ ...current, reference_notes: event.target.value }))}
+            />
+          </label>
+          <div className="brand-kit-actions">
+            <small>{brandKit.updated_at ? `Updated ${new Date(brandKit.updated_at).toLocaleString()}` : "Local guidance ready"}</small>
+            <button
+              className="mini-button provider-check-button"
+              type="button"
+              aria-label="Save inspector Brand Kit"
+              onClick={saveBrandKit}
+              disabled={brandKitBusy}
+            >
+              {brandKitBusy ? <RefreshCw className="spin" size={14} /> : <CheckCircle2 size={14} />}
+              Save Brand Kit
+            </button>
+            <button
+              className="mini-button provider-check-button"
+              type="button"
+              aria-label="Save inspector context brief"
+              onClick={saveBrandContextBrief}
+              disabled={connection !== "online" || brandContextBusy}
+            >
+              {brandContextBusy ? <RefreshCw className="spin" size={14} /> : <Download size={14} />}
+              Save context brief
+            </button>
+          </div>
+          {brandContextPath ? (
+            <div className="demo-evidence-actions brand-context-actions">
+              <small className="demo-evidence-path">Inspector brand context: {brandContextPath}</small>
+              {brandContextUrl ? (
+                <button
+                  className="mini-button provider-check-button"
+                  type="button"
+                  aria-label="Open inspector context brief"
+                  onClick={() => openStudioLink(brandContextUrl, "Brand context")}
+                >
+                  <ExternalLink size={14} />
+                  Open context brief
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </section>
 
         <div className="status-strip">
           <span>{statusText}</span>
