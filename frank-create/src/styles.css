@@ -511,6 +511,49 @@ button:disabled {
   gap: 12px;
 }
 
+.drawer-toolbar {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+.drawer-toolbar > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.drawer-toolbar strong {
+  color: var(--ink);
+  font-family: var(--font-brand);
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.drawer-toolbar small {
+  color: var(--muted);
+  line-height: 1.25;
+}
+
+.drawer-close-button {
+  flex: none;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-drawer-toolbar {
+  background: var(--cream);
+}
+
 .model-list.compact {
   max-height: 300px;
   overflow: auto;
@@ -537,7 +580,7 @@ button:disabled {
   color: var(--muted);
 }
 
-.advanced-drawer {
+.control-panel.advanced-drawer {
   position: fixed;
   inset: 76px 0 0 auto;
   z-index: 30;
@@ -545,6 +588,13 @@ button:disabled {
   height: calc(100vh - 76px);
   border-width: 1px 0 0 1px;
   box-shadow: -22px 0 48px rgba(63, 42, 45, 0.16);
+}
+
+.advanced-drawer-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  box-shadow: 0 10px 22px rgba(63, 42, 45, 0.08);
 }
 
 .advanced-map-section {

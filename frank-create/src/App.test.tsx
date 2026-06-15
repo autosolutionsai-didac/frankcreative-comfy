@@ -239,11 +239,32 @@ describe("App", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /^Advanced$/i }));
 
+    const advancedDrawer = screen.getByLabelText("Advanced tools");
+    expect(within(advancedDrawer).getByRole("button", { name: /^Close$/i })).toBeInTheDocument();
     expect(screen.getByText("Provider Setup")).toBeInTheDocument();
     expect(screen.getByText("Demo Doctor")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Workflow Map/i })).toBeInTheDocument();
     expect(screen.getByText("Cliff key order")).toBeInTheDocument();
     expect(screen.getAllByText("GOOGLE_API_KEY").length).toBeGreaterThan(0);
+
+    fireEvent.click(within(advancedDrawer).getByRole("button", { name: /^Close$/i }));
+    expect(screen.queryByLabelText("Advanced tools")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Advanced$/i })).toBeInTheDocument();
+  });
+
+  it("lets users close the model drawer from inside the opened panel", async () => {
+    render(<App />);
+
+    expect(await screen.findByText("Frank Create")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Change model/i }));
+
+    const settingsDrawer = screen.getByLabelText("Model and output settings");
+    expect(screen.getByRole("button", { name: /Hide model settings/i })).toBeInTheDocument();
+    expect(within(settingsDrawer).getByRole("button", { name: /^Done$/i })).toBeInTheDocument();
+
+    fireEvent.click(within(settingsDrawer).getByRole("button", { name: /^Done$/i }));
+    expect(screen.queryByLabelText("Model and output settings")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Change model/i })).toBeInTheDocument();
   });
 
   it("copies a provider key plan without provider secret values", async () => {

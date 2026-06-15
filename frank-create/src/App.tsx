@@ -353,6 +353,20 @@ export default function App() {
   const [statusText, setStatusText] = useState("Waiting for the brief...");
 
   useEffect(() => {
+    function handleDrawerKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      setAdvancedOpen(false);
+      setSettingsOpen(false);
+    }
+
+    window.addEventListener("keydown", handleDrawerKeyDown);
+    return () => window.removeEventListener("keydown", handleDrawerKeyDown);
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
 
     async function bootstrap() {
@@ -2266,9 +2280,15 @@ export default function App() {
             <MessageSquareText size={16} />
             Demo Walkthrough
           </button>
-          <button className="secondary-button compact-action" type="button" onClick={() => setAdvancedOpen((current) => !current)}>
-            <GitBranch size={16} />
-            Advanced
+          <button
+            className="secondary-button compact-action"
+            type="button"
+            aria-controls="advanced-tools-drawer"
+            aria-expanded={advancedOpen}
+            onClick={() => setAdvancedOpen((current) => !current)}
+          >
+            {advancedOpen ? <XCircle size={16} /> : <GitBranch size={16} />}
+            {advancedOpen ? "Close Advanced" : "Advanced"}
           </button>
         </div>
       </header>
@@ -2507,17 +2527,34 @@ export default function App() {
             </span>
             <em>{selectedModel?.badge ?? "Ready"}</em>
           </div>
-          <button className="secondary-button handoff-button" type="button" onClick={() => setSettingsOpen((current) => !current)}>
-            <Cpu size={16} />
-            Change model
+          <button
+            className="secondary-button handoff-button"
+            type="button"
+            aria-controls="model-settings-drawer"
+            aria-expanded={settingsOpen}
+            onClick={() => setSettingsOpen((current) => !current)}
+          >
+            {settingsOpen ? <XCircle size={16} /> : <Cpu size={16} />}
+            {settingsOpen ? "Hide model settings" : "Change model"}
           </button>
           {settingsOpen ? (
             <div
+              id="model-settings-drawer"
               className="settings-drawer"
               aria-label="Model and output settings"
               data-tour-id="model-settings-drawer"
               data-tour-active={tourActive("model-settings-drawer")}
             >
+              <div className="drawer-toolbar settings-drawer-toolbar">
+                <span>
+                  <strong>Model choices</strong>
+                  <small>Pick provider, size, refs, and brand mode.</small>
+                </span>
+                <button className="mini-button drawer-close-button" type="button" onClick={() => setSettingsOpen(false)}>
+                  <XCircle size={14} />
+                  Done
+                </button>
+              </div>
               <div className="model-list compact">
                 {config.models.map((model) => (
                   <button
@@ -2884,7 +2921,23 @@ export default function App() {
       </aside>
 
       {advancedOpen ? (
-      <aside className="control-panel advanced-drawer" aria-label="Advanced tools" data-tour-id="advanced-tools" data-tour-active={tourActive("advanced-tools")}>
+      <aside
+        id="advanced-tools-drawer"
+        className="control-panel advanced-drawer"
+        aria-label="Advanced tools"
+        data-tour-id="advanced-tools"
+        data-tour-active={tourActive("advanced-tools")}
+      >
+        <div className="drawer-toolbar advanced-drawer-toolbar">
+          <span>
+            <strong>Advanced tools</strong>
+            <small>Setup, diagnostics, Comfy, and call-day receipts.</small>
+          </span>
+          <button className="mini-button drawer-close-button" type="button" onClick={() => setAdvancedOpen(false)}>
+            <XCircle size={14} />
+            Close
+          </button>
+        </div>
         <section className="control-section advanced-map-section">
           <div className="section-title">
             <p className="eyebrow">Advanced</p>
