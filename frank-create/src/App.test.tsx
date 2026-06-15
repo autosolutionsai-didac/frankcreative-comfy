@@ -200,11 +200,15 @@ describe("App", () => {
       })
     );
 
-    render(<App />);
+    const { container } = render(<App />);
 
     expect(await screen.findByRole("heading", { name: "Frank Body Demo Studio" })).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Active session"), { target: { value: scratchSession.id } });
     expect(await screen.findByRole("heading", { name: "Scratch image session" })).toBeInTheDocument();
+    const composerActions = container.querySelector<HTMLElement>(".composer-actions");
+    expect(composerActions).not.toBeNull();
+    expect(within(composerActions!).getByRole("button", { name: /^Cancel session$/i })).toBeInTheDocument();
+    expect(within(container.querySelector<HTMLElement>(".guided-header")!).queryByRole("button", { name: /^Cancel session$/i })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /^Cancel session$/i }));
     const keepDialog = screen.getByRole("dialog", { name: /Cancel session confirmation/i });

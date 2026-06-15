@@ -1142,7 +1142,7 @@ select:focus {
 
 .composer-actions {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) repeat(4, auto);
+  grid-template-columns: auto minmax(0, 1fr) repeat(5, auto);
   align-items: center;
   gap: 10px;
 }
@@ -1182,6 +1182,13 @@ select:focus {
 
 .remix-button {
   font-weight: 800;
+}
+
+.composer-cancel-button {
+  width: auto;
+  min-height: 42px;
+  padding: 0 12px;
+  white-space: nowrap;
 }
 
 .upload-button {

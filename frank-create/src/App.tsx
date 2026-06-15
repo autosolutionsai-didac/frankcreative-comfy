@@ -165,7 +165,7 @@ const WALKTHROUGH_STEPS: WalkthroughStep[] = [
   {
     title: "Brief and references",
     detail: "This is the working brief. Add product references, write the ask in plain English, choose the job type, and press Generate when the direction is clear.",
-    points: ["References are selectable, so a round can use all refs, some refs, or prompt-only.", "Brief remix gives alternate prompt directions without leaving the Studio.", "Generate uses the selected model and settings from the right panel."],
+    points: ["References are selectable, so a round can use all refs, some refs, or prompt-only.", "Brief remix gives alternate prompt directions without leaving the Studio.", "Cancel session archives the current scratch brief without deleting generated files."],
     target: "composer"
   },
   {
@@ -2308,15 +2308,6 @@ export default function App() {
             <Plus size={16} />
             New session
           </button>
-          <button
-            className="secondary-button compact-action danger-button"
-            type="button"
-            onClick={requestCancelCurrentSession}
-            disabled={!activeSession}
-          >
-            <XCircle size={16} />
-            Cancel session
-          </button>
           <button className="secondary-button compact-action" type="button" onClick={startWalkthrough}>
             <MessageSquareText size={16} />
             Demo Walkthrough
@@ -2544,6 +2535,15 @@ export default function App() {
             <button className="primary-button" type="submit" disabled={busy}>
               {busy ? <RefreshCw className="spin" size={18} /> : <Wand2 size={18} />}
               {primaryActionLabel}
+            </button>
+            <button
+              className="secondary-button danger-button composer-cancel-button"
+              type="button"
+              onClick={requestCancelCurrentSession}
+              disabled={!activeSession}
+            >
+              <XCircle size={16} />
+              Cancel session
             </button>
           </div>
         </form>
