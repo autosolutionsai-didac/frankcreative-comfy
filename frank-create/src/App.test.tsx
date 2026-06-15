@@ -146,6 +146,83 @@ describe("App", () => {
     expect(screen.getByText("Frank demo product shot")).toBeInTheDocument();
   });
 
+  it("shows a visible cancel session flow and returns to the main demo after archiving", async () => {
+    const scratchSession = {
+      id: "session-scratch-cancel",
+      name: "Scratch image session",
+      mode: "image",
+      status: "active",
+      created_at: "2026-06-15T00:00:00Z",
+      updated_at: "2026-06-15T00:00:00Z"
+    };
+    const demoSession = {
+      id: "session-demo-cancel",
+      name: "Frank Body Demo Studio",
+      mode: "image",
+      status: "active",
+      created_at: "2026-06-14T00:00:00Z",
+      updated_at: "2026-06-14T00:00:00Z"
+    };
+    const patchCalls: unknown[] = [];
+
+    vi.unstubAllGlobals();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        const method = init?.method ?? "GET";
+        if (url.endsWith("/api/frank/health")) {
+          return jsonResponse({ ok: true, product: "Frank Create" });
+        }
+        if (url.endsWith("/api/frank/config")) {
+          return jsonResponse(fallbackConfig);
+        }
+        if (url.endsWith("/api/frank/sessions") && method === "GET") {
+          return jsonResponse({ sessions: [scratchSession, demoSession] });
+        }
+        if (url.endsWith(`/api/frank/sessions/${scratchSession.id}`) && method === "PATCH") {
+          patchCalls.push(JSON.parse(String(init?.body)));
+          return jsonResponse({ session: { ...scratchSession, status: "archived" } });
+        }
+        if (url.includes("/api/frank/turns")) {
+          return jsonResponse({ turns: [] });
+        }
+        if (url.includes("/api/frank/assets")) {
+          return jsonResponse({ assets: [] });
+        }
+        if (url.includes("/api/frank/exports")) {
+          return jsonResponse({ exports: [] });
+        }
+        if (url.endsWith("/api/frank/projects")) {
+          return jsonResponse({ projects: [] });
+        }
+        throw new Error(`Unhandled fetch: ${method} ${url}`);
+      })
+    );
+
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: "Frank Body Demo Studio" })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Active session"), { target: { value: scratchSession.id } });
+    expect(await screen.findByRole("heading", { name: "Scratch image session" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /^Cancel session$/i }));
+    const keepDialog = screen.getByRole("dialog", { name: /Cancel session confirmation/i });
+    expect(keepDialog).toHaveTextContent("Generated files, exports, and receipts stay on disk.");
+    fireEvent.click(within(keepDialog).getByRole("button", { name: /^Keep session$/i }));
+    expect(screen.queryByRole("dialog", { name: /Cancel session confirmation/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Scratch image session" })).toBeInTheDocument();
+    expect(patchCalls).toEqual([]);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Cancel session$/i }));
+    const confirmDialog = screen.getByRole("dialog", { name: /Cancel session confirmation/i });
+    fireEvent.click(within(confirmDialog).getByRole("button", { name: /^Cancel session$/i }));
+
+    await screen.findByText("Session tucked away.");
+    expect(patchCalls).toEqual([{ status: "archived" }]);
+    expect(screen.getByRole("heading", { name: "Frank Body Demo Studio" })).toBeInTheDocument();
+  });
+
   it("opens a modal walkthrough that dims the app and points at each real workspace area", async () => {
     const { container } = render(<App />);
 
@@ -1517,12 +1594,13 @@ describe("App", () => {
     render(<App />);
 
     expect(await screen.findByRole("heading", { name: "Do Not Lose Me" })).toBeInTheDocument();
-    openAdvanced();
-    fireEvent.click(screen.getByRole("button", { name: /^Clear$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^Cancel session$/i }));
+    const dialog = screen.getByRole("dialog", { name: /Cancel session confirmation/i });
+    fireEvent.click(within(dialog).getByRole("button", { name: /^Cancel session$/i }));
 
     expect(await screen.findByText("Session archive is temporarily locked.")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Do Not Lose Me" })).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: /Export Cliff Pack/i }).every((button) => button.hasAttribute("disabled"))).toBe(true);
+    expect(screen.queryByRole("dialog", { name: /Cancel session confirmation/i })).not.toBeInTheDocument();
   });
 
   it("opens a Frank-branded graph surface from the advanced graph control", async () => {

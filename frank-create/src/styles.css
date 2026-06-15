@@ -2934,6 +2934,50 @@ input {
   padding: 24px;
 }
 
+.session-cancel-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 65;
+  background: rgba(63, 42, 45, 0.58);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  backdrop-filter: grayscale(0.35) blur(2px);
+}
+
+.session-cancel-card {
+  position: relative;
+  width: min(440px, calc(100vw - 32px));
+  border: 1px solid rgba(63, 42, 45, 0.22);
+  border-radius: 8px;
+  background: var(--paper);
+  box-shadow: 0 24px 70px rgba(63, 42, 45, 0.28);
+  display: grid;
+  gap: 12px;
+  padding: 22px;
+}
+
+.session-cancel-card h2,
+.session-cancel-card p {
+  margin: 0;
+}
+
+.session-cancel-card h2 {
+  font-size: 1.8rem;
+}
+
+.session-cancel-card p:not(.eyebrow) {
+  color: var(--coffee);
+  line-height: 1.45;
+}
+
+.session-cancel-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 6px;
+}
+
 .lightbox-inner {
   position: relative;
   max-width: min(980px, 94vw);
@@ -4718,6 +4762,10 @@ input {
   .guided-header .compact-action.secondary-button {
     justify-content: center;
     width: 100%;
+  }
+
+  .session-cancel-actions {
+    grid-template-columns: 1fr;
   }
 
   .studio-shell.guided-studio .conversation-column {

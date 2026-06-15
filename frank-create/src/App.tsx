@@ -302,6 +302,7 @@ export default function App() {
   const [editSourceAsset, setEditSourceAsset] = useState<Asset | null>(null);
   const [maskAsset, setMaskAsset] = useState<Asset | null>(null);
   const [maskPainterAsset, setMaskPainterAsset] = useState<Asset | null>(null);
+  const [sessionCancelTarget, setSessionCancelTarget] = useState<StudioSession | null>(null);
   const [selectedReferenceIds, setSelectedReferenceIds] = useState<string[]>([]);
   const [assetNotesDraft, setAssetNotesDraft] = useState("");
   const [providerReadiness, setProviderReadiness] = useState<ProviderReadiness | null>(null);
@@ -749,7 +750,7 @@ export default function App() {
 
     const remaining = sessions.filter((item) => item.id !== session.id);
     setSessions(remaining);
-    const next = remaining[0] ?? null;
+    const next = chooseLaunchSession(remaining) ?? null;
     setActiveSession(next);
     setTurns([]);
     setAssets([]);
@@ -764,10 +765,21 @@ export default function App() {
     setStatusText("Session tucked away.");
   }
 
-  async function clearCurrentSession() {
+  function requestCancelCurrentSession() {
     if (activeSession) {
-      await archiveSession(activeSession);
+      setSessionCancelTarget(activeSession);
+      setStatusText("Cancel this session? It will be archived, not deleted.");
     }
+  }
+
+  async function confirmCancelSession() {
+    if (!sessionCancelTarget) {
+      return;
+    }
+
+    const target = sessionCancelTarget;
+    setSessionCancelTarget(null);
+    await archiveSession(target);
   }
 
   async function checkProviderReadiness() {
@@ -2296,6 +2308,15 @@ export default function App() {
             <Plus size={16} />
             New session
           </button>
+          <button
+            className="secondary-button compact-action danger-button"
+            type="button"
+            onClick={requestCancelCurrentSession}
+            disabled={!activeSession}
+          >
+            <XCircle size={16} />
+            Cancel session
+          </button>
           <button className="secondary-button compact-action" type="button" onClick={startWalkthrough}>
             <MessageSquareText size={16} />
             Demo Walkthrough
@@ -2991,9 +3012,9 @@ export default function App() {
             <h3>Current session</h3>
           </div>
           <p>{activeSession?.name ?? "No active session"}</p>
-          <button className="secondary-button danger-button" type="button" onClick={clearCurrentSession} disabled={!activeSession}>
+          <button className="secondary-button danger-button" type="button" onClick={requestCancelCurrentSession} disabled={!activeSession}>
             <XCircle size={16} />
-            Clear
+            Cancel session
           </button>
         </section>
 
@@ -3848,6 +3869,14 @@ export default function App() {
         />
       ) : null}
 
+      {sessionCancelTarget ? (
+        <SessionCancelDialog
+          session={sessionCancelTarget}
+          onCancel={() => setSessionCancelTarget(null)}
+          onConfirm={confirmCancelSession}
+        />
+      ) : null}
+
       {lightboxAsset ? (
         <div className="lightbox" role="dialog" aria-modal="true" onClick={() => setLightboxAsset(null)}>
           <div className="lightbox-inner" onClick={(event) => event.stopPropagation()}>
@@ -3961,6 +3990,41 @@ function WalkthroughOverlay({
         </div>
       </section>
     </>
+  );
+}
+
+function SessionCancelDialog({
+  session,
+  onCancel,
+  onConfirm
+}: {
+  session: StudioSession;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="session-cancel-modal" role="dialog" aria-modal="true" aria-label="Cancel session confirmation">
+      <section className="session-cancel-card">
+        <button className="lightbox-close" type="button" onClick={onCancel} aria-label="Close cancel dialog">
+          <XCircle size={18} />
+        </button>
+        <p className="eyebrow">Session control</p>
+        <h2>Cancel this session?</h2>
+        <p>
+          <strong>{session.name}</strong> will be archived and removed from the active session list. Generated files,
+          exports, and receipts stay on disk.
+        </p>
+        <div className="session-cancel-actions">
+          <button className="secondary-button" type="button" onClick={onCancel}>
+            Keep session
+          </button>
+          <button className="secondary-button danger-button" type="button" onClick={onConfirm}>
+            <XCircle size={16} />
+            Cancel session
+          </button>
+        </div>
+      </section>
+    </div>
   );
 }
 
